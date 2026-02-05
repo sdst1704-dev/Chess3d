@@ -1,15 +1,34 @@
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+import javax.swing.*;
+import java.awt.*;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+public  class  Main {
+
+    public  static  void  main (String[] args) {
+        JFrame  frame  =  new  JFrame ();
+        Container  pane  = frame.getContentPane();
+        pane.setLayout( new  BorderLayout ());
+
+        // ползунок для управления горизонтальным вращением
+        JSlider  headingSlider  =  new  JSlider ( 0 , 360 , 180 );
+        pane.add(headingSlider, BorderLayout.SOUTH);
+
+        // ползунок для управления вертикальным вращением
+        JSlider  pitchSlider  =  new  JSlider (SwingConstants.VERTICAL, - 90 , 90 , 0 );
+        pane.add(pitchSlider, BorderLayout.EAST);
+
+        // Панель для отображения результатов рендеринга
+        JPanel  renderPanel  =  new  JPanel () {
+            public  void  paintComponent (Graphics g) {
+                Graphics2D  g2  = (Graphics2D) g;
+                g2.setColor(Color.WHITE);
+                g2.fillRect( 0 , 0 , getWidth(), getHeight());
+
+                // Здесь произойдет магия рендеринга
+            }
+        };
+        pane.add(renderPanel, BorderLayout.CENTER);
+
+        frame.setSize( 400 , 400 );
+        frame.setVisible( true );
     }
 }
