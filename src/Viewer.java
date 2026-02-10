@@ -10,31 +10,18 @@ public class Viewer extends JPanel {
     private double scale = 20.0; // Масштаб
     private int prevMouseX, prevMouseY;
 
-    //private double rotX = 0.5, rotY = 0.5;
-    // Куб: центр (1.5,1.5,1.5), ребро=1
-    //private static final double[][][] CUBE = {
-    //        {{1,1,1}, {2,1,1}, {2,2,1}, {1,2,1}}, // Нижняя грань
-     //       {{1,1,2}, {2,1,2}, {2,2,2}, {1,2,2}}, // Верхняя грань
-     //       {{1,1,1}, {2,1,1}, {2,1,2}, {1,1,2}}, // Передняя грань
-     //       {{1,2,1}, {2,2,1}, {2,2,2}, {1,2,2}}, // Задняя грань
-      //      {{1,1,1}, {1,2,1}, {1,2,2}, {1,1,2}}, // Левая грань
-      //      {{2,1,1}, {2,2,1}, {2,2,2}, {2,1,2}}  // Правая грань
-    //};
-    //private double[] rotate(double x, double y, double z) {
-    //    double cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-    //    double x1 = x * cosY - z * sinY;
-    //    double z1 = x * sinY + z * cosY;
-//
-  //       double cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-   //     double y1 = y * cosX - z1 * sinX;
-   //     double z2 = y * sinX + z1 * cosX;
-//
-    //     return new double[]{x1, y1, z2};
-    //}
-    //private Point project(double x, double y, double z) {
-    //    int cx = getWidth()/2, cy = getHeight()/2;
-    //    return new Point((int)(x * 100) + cx, (int)(-y * 100) + cy);
-    //}
+    private double rotX = 0.5, rotY = 0.5;
+    private double[] rotate(double x, double y, double z) {
+        double cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+        double x1 = x * cosY - z * sinY;
+        double z1 = x * sinY + z * cosY;
+
+        double cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+        double y1 = y * cosX - z1 * sinX;
+        double z2 = y * sinX + z1 * cosX;
+
+         return new double[]{x1, y1, z2};
+    }
 
 
     // Флаги для режима вращения
@@ -146,7 +133,6 @@ public class Viewer extends JPanel {
         for (int i = 0; i < axes.length; i++) {
             double[] rotatedPoint = rotatePoint(axes[i][0], axes[i][1], axes[i][2]);
             Point screenPoint = projectTo2D(rotatedPoint[0], rotatedPoint[1], rotatedPoint[2]);
-
             // Линия оси
             g2d.setColor(axisColors[i]);
             g2d.setStroke(new BasicStroke(2));
@@ -232,7 +218,7 @@ public class Viewer extends JPanel {
 
                 // Рисование черного отрезка
                 g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(1 / 3));
+                g2d.setStroke(new BasicStroke(1));
                 g2d.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
             }
             if (i != 8) {
@@ -258,7 +244,7 @@ public class Viewer extends JPanel {
 
                 // Рисование черного отрезка
                 g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(1 / 3));
+                g2d.setStroke(new BasicStroke(1));
                 g2d.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
             }
 
@@ -285,7 +271,7 @@ public class Viewer extends JPanel {
 
                 // Рисование черного отрезка
                 g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(1 / 3));
+                g2d.setStroke(new BasicStroke(1));
                 g2d.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
             }
 
@@ -302,27 +288,65 @@ public class Viewer extends JPanel {
                 g2d.drawString(Label, screenPoint.x + 5, screenPoint.y + 5);
             }
         }
-        //for (double[][] face : CUBE) {
-          //  int[] xs = new int[4];
-         //   int[] ys = new int[4];
+        for (int b = 0; b < 8; b++) {
+            for (int a = 0; a < 8; a++) {
+                for (int c = 0; c < 8; c+=2) {
+                    // Куб
+                    double[][][] CUBE = {
+                            {{c+(a+b)%2, b, a},       {c+1+(a+b)%2, b, a},      {c+1+(a+b)%2, b + 1, a},      {c+(a+b)%2, b + 1, a}}, // Нижняя грань
+                            {{c+(a+b)%2, b, a + 1},   {c+1+(a+b)%2, b, a + 1},  {c+1+(a+b)%2, b + 1, a + 1},  {c+(a+b)%2, b + 1, a + 1}}, // Верхняя грань
+                            {{c+(a+b)%2, b, a},       {c+1+(a+b)%2, b, a},      {c+1+(a+b)%2, b, a + 1},      {c+(a+b)%2, b, a + 1}}, // Передняя грань
+                            {{c+(a+b)%2, b + 1, a},   {c+1+(a+b)%2, b + 1, a},  {c+1+(a+b)%2, b + 1, a + 1},  {c+(a+b)%2, b + 1, a + 1}}, // Задняя грань
+                            {{c+(a+b)%2, b, a},       {c+(a+b)%2, b + 1, a},    {c+(a+b)%2, b + 1, a + 1},    {c+(a+b)%2, b, a + 1}}, // Левая грань
+                            {{c+1+(a+b)%2, b, a},     {c+1+(a+b)%2, b + 1, a},  {c+1+(a+b)%2, b + 1, a + 1},  {c+1+(a+b)%2, b, a + 1}}  // Правая грань
+                    };
+                    for (double[][] face : CUBE) {
+                        int[] xs = new int[4];
+                        int[] ys = new int[4];
 
-       //     for (int i = 0; i < 4; i++) {
-        //       double[] p = rotate(face[i][0], face[i][1], face[i][2]);
-          //      Point screen = project(p[0], p[1], p[2]);
-         //      xs[i] = screen.x;
-         //       ys[i] = screen.y;
-         //   }
-//
-          //  // Прозрачная зеленая заливка
-          //  g2d.setColor(new Color(0, 255, 0, 50));
-          //  g2d.fillPolygon(xs, ys, 4);
-//
-             // Контур грани
-         //   g2d.setColor(new Color(0, 150, 0));
-          //  g2d.drawPolygon(xs, ys, 4);
-        //}
+                        for (int i = 0; i < 4; i++) {
+                            double[] p = rotatePoint(face[i][0], face[i][1], face[i][2]);
+                            Point screen = projectTo2D(p[0], p[1], p[2]);
+                            xs[i] = screen.x;
+                            ys[i] = screen.y;
+                        }
+                        // Прозрачная зеленая заливка
+                        g2d.setColor(new Color(0, 200, 0, 15));
+                        g2d.fillPolygon(xs, ys, 4);
+                    }
+                }
+            }
+        }
+        for (int b = 0; b < 8; b++) {
+            for (int a = 0; a < 8; a++) {
+                for (int c = 0; c < 8; c+=2) {
+                    // Куб
+                    double[][][] CUBE = {
+                            {{8-(c+(a+b)%2), b, a},       {8-(c+1+(a+b)%2), b, a},      {8-(c+1+(a+b)%2), b + 1, a},      {8-(c+(a+b)%2), b + 1, a}}, // Нижняя грань
+                            {{8-(c+(a+b)%2), b, a + 1},   {8-(c+1+(a+b)%2), b, a + 1},  {8-(c+1+(a+b)%2), b + 1, a + 1},  {8-(c+(a+b)%2), b + 1, a + 1}}, // Верхняя грань
+                            {{8-(c+(a+b)%2), b, a},       {8-(c+1+(a+b)%2), b, a},      {8-(c+1+(a+b)%2), b, a + 1},      {8-(c+(a+b)%2), b, a + 1}}, // Передняя грань
+                            {{8-(c+(a+b)%2), b + 1, a},   {8-(c+1+(a+b)%2), b + 1, a},  {8-(c+1+(a+b)%2), b + 1, a + 1},  {8-(c+(a+b)%2), b + 1, a + 1}}, // Задняя грань
+                            {{8-(c+(a+b)%2), b, a},       {8-(c+(a+b)%2), b + 1, a},    {8-(c+(a+b)%2), b + 1, a + 1},    {8-(c+(a+b)%2), b, a + 1}}, // Левая грань
+                            {{8-(c+1+(a+b)%2), b, a},     {8-(c+1+(a+b)%2), b + 1, a},  {8-(c+1+(a+b)%2), b + 1, a + 1},  {8-(c+1+(a+b)%2), b, a + 1}}  // Правая грань
+                    };
+                    for (double[][] face : CUBE) {
+                        int[] xs = new int[4];
+                        int[] ys = new int[4];
+
+                        for (int i = 0; i < 4; i++) {
+                            double[] p = rotatePoint(face[i][0], face[i][1], face[i][2]);
+                            Point screen = projectTo2D(p[0], p[1], p[2]);
+                            xs[i] = screen.x;
+                            ys[i] = screen.y;
+                        }
+                        // Прозрачная бежевая заливка
+                        g2d.setColor(new Color(200, 100, 0, 15));
+                        g2d.fillPolygon(xs, ys, 4);
+                    }
+                }
+            }
+        }
     }
-
 
 
 
