@@ -1,403 +1,145 @@
+
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
+import java.awt.event.*;
 
-// Класс для представления точки в 3D пространстве
-class Point3D {
-    double x, y, z;
+public class Rotating3DCube extends JPanel {
 
-    public Point3D(double x, double y, double z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
+    private static final double[][] LINE = {{1,1,1}, {0,0,0}};
+    private static final double[] TEXT_POINT = {2,2,2};
 
-    // Поворот точки вокруг оси X
-    public void rotateX(double angle) {
-        double cos = Math.cos(angle);
-        double sin = Math.sin(angle);
-        double newY = y * cos - z * sin;
-        double newZ = y * sin + z * cos;
-        y = newY;
-        z = newZ;
-    }
+    // Куб: центр (1.5,1.5,1.5), ребро=1
+    private static final double[][][] CUBE = {
+            {{1,1,1}, {2,1,1}, {2,2,1}, {1,2,1}}, // Нижняя грань
+            {{1,1,2}, {2,1,2}, {2,2,2}, {1,2,2}}, // Верхняя грань
+            {{1,1,1}, {2,1,1}, {2,1,2}, {1,1,2}}, // Передняя грань
+            {{1,2,1}, {2,2,1}, {2,2,2}, {1,2,2}}, // Задняя грань
+            {{1,1,1}, {1,2,1}, {1,2,2}, {1,1,2}}, // Левая грань
+            {{2,1,1}, {2,2,1}, {2,2,2}, {2,1,2}}  // Правая грань
+    };
 
-    // Поворот точки вокруг оси Y
-    public void rotateY(double angle) {
-        double cos = Math.cos(angle);
-        double sin = Math.sin(angle);
-        double newX = x * cos + z * sin;
-        double newZ = -x * sin + z * cos;
-        x = newX;
-        z = newZ;
-    }
+    private double rotX = 0.5, rotY = 0.5;
+    private double zoom = 100;
 
-    // Поворот точки вокруг оси Z
-    public void rotateZ(double angle) {
-        double cos = Math.cos(angle);
-        double sin = Math.sin(angle);
-        double newX = x * cos - y * sin;
-        double newY = x * sin + y * cos;
-        x = newX;
-        y = newY;
-    }
+    public  Rotating3DCube() {
+        setPreferredSize(new Dimension(800, 600));
+        setBackground(Color.WHITE);
 
-    // Проекция 3D точки на 2D экран
-    public Point2D project(int width, int height, double fov) {
-        double factor = fov / (fov + z);
-        int screenX = (int)(x * factor) + width / 2;
-        int screenY = (int)(-y * factor) + height / 2;
-        return new Point2D(screenX, screenY);
-    }
-}
-
-
-class Point2D {
-    double x, y, z;
-
-    public Point2D(double x, double y) {
-        this.x = x;
-        this.y = y;
-    }
-
-}
-
-
-    // Класс для представления кубической ячейки
-class Cell {
-    private int x, y, z; // Координаты ячейки в сетке куба (0-7)
-    private Point3D[] vertices; // 8 вершин ячейки
-    private int[] coordinates; // Массив координат [x, y, z]
-
-    public Cell(int x, int y, int z, double cellSize) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.coordinates = new int[]{x, y, z};
-
-        // Создаем вершины куба (8 точек)
-        vertices = new Point3D[8];
-
-        // Вычисляем мировые координаты вершин
-        double startX = -4 * cellSize + x * cellSize;
-        double startY = -4 * cellSize + y * cellSize;
-        double startZ = -4 * cellSize + z * cellSize;
-
-        // Вершины куба
-        vertices[0] = new Point3D(startX, startY, startZ);
-        vertices[1] = new Point3D(startX + cellSize, startY, startZ);
-        vertices[2] = new Point3D(startX + cellSize, startY + cellSize, startZ);
-        vertices[3] = new Point3D(startX, startY + cellSize, startZ);
-        vertices[4] = new Point3D(startX, startY, startZ + cellSize);
-        vertices[5] = new Point3D(startX + cellSize, startY, startZ + cellSize);
-        vertices[6] = new Point3D(startX + cellSize, startY + cellSize, startZ + cellSize);
-        vertices[7] = new Point3D(startX, startY + cellSize, startZ + cellSize);
-    }
-
-    // Поворот ячейки
-    public void rotateX(double angle) {
-        for (Point3D vertex : vertices) {
-            vertex.rotateX(angle);
-        }
-    }
-
-    public void rotateY(double angle) {
-        for (Point3D vertex : vertices) {
-            vertex.rotateY(angle);
-        }
-    }
-
-    public void rotateZ(double angle) {
-        for (Point3D vertex : vertices) {
-            vertex.rotateZ(angle);
-        }
-    }
-
-    // Получение массива координат
-    public int[] getCoordinates() {
-        return coordinates.clone();
-    }
-
-    // Отрисовка ячейки
-    public void draw(Graphics2D g, int width, int height, double fov) {
-        // Проецируем вершины на 2D
-        Point2D[] projected = new Point2D[8];
-        for (int i = 0; i < 8; i++) {
-            projected[i] = vertices[i].project(width, height, fov);
-        }
-
-        // Устанавливаем цвет в зависимости от положения ячейки
-        int colorValue = (x * 32) + (y * 32) + (z * 32);
-        g.setColor(new Color(
-                Math.min(255, colorValue),
-                Math.min(255, 128 + x * 16),
-                Math.min(255, 128 + z * 16)
-        ));
-
-        // Рисуем грани куба
-        // Передняя грань
-        drawQuad(g, projected, new int[]{0, 1, 2, 3});
-
-        // Задняя грань
-        drawQuad(g, projected, new int[]{4, 5, 6, 7});
-
-        // Верхняя грань
-        drawQuad(g, projected, new int[]{3, 2, 6, 7});
-
-        // Нижняя грань
-        drawQuad(g, projected, new int[]{0, 1, 5, 4});
-
-        // Левая грань
-        drawQuad(g, projected, new int[]{0, 3, 7, 4});
-
-        // Правая грань
-        drawQuad(g, projected, new int[]{1, 2, 6, 5});
-    }
-
-    // Рисование четырехугольника по точкам
-    private void drawQuad(Graphics2D g, Point2D[] points, int[] indices) {
-        int[] xPoints = new int[4];
-        int[] yPoints = new int[4];
-
-        for (int i = 0; i < 4; i++) {
-            xPoints[i] = x;
-            yPoints[i] = y;
-        }
-
-        // Рисуем заполненный полигон с более прозрачным цветом
-        Color fillColor = new Color(g.getColor().getRed(), g.getColor().getGreen(), g.getColor().getBlue(), 50);
-        g.setColor(fillColor);
-        g.fillPolygon(xPoints, yPoints, 4);
-
-        // Рисуем контур более темным цветом
-        g.setColor(g.getColor().darker().darker());
-        g.drawPolygon(xPoints, yPoints, 4);
-    }
-}
-
-// Класс для хранения массива всех ячеек
-class CubeGrid {
-    private ArrayList<Cell> cells;
-    private ArrayList<int[]> coordinatesArray;
-    private int cellsPerSide;
-    private double cellSize;
-
-    public CubeGrid(int cellsPerSide, double cellSize) {
-        this.cellsPerSide = cellsPerSide;
-        this.cellSize = cellSize;
-        this.cells = new ArrayList<>();
-        this.coordinatesArray = new ArrayList<>();
-
-        createGrid();
-    }
-
-    private void createGrid() {
-        // Создаем 512 ячеек (8×8×8)
-        for (int x = 0; x < cellsPerSide; x++) {
-            for (int y = 0; y < cellsPerSide; y++) {
-                for (int z = 0; z < cellsPerSide; z++) {
-                    Cell cell = new Cell(x, y, z, cellSize);
-                    cells.add(cell);
-                    coordinatesArray.add(cell.getCoordinates());
-                }
+        addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                lastX = e.getX();
+                lastY = e.getY();
             }
-        }
-    }
-
-    // Поворот всех ячеек
-    public void rotateX(double angle) {
-        for (Cell cell : cells) {
-            cell.rotateX(angle);
-        }
-    }
-
-    public void rotateY(double angle) {
-        for (Cell cell : cells) {
-            cell.rotateY(angle);
-        }
-    }
-
-    public void rotateZ(double angle) {
-        for (Cell cell : cells) {
-            cell.rotateZ(angle);
-        }
-    }
-
-    // Получение массива координат всех ячеек
-    public ArrayList<int[]> getCoordinatesArray() {
-        return coordinatesArray;
-    }
-
-    // Получение списка ячеек
-    public ArrayList<Cell> getCells() {
-        return cells;
-    }
-
-    // Отрисовка всех ячеек
-    public void draw(Graphics2D g, int width, int height, double fov) {
-        // Сортируем ячейки по Z-координате для правильного отображения
-        ArrayList<Cell> sortedCells = new ArrayList<>(cells);
-        sortedCells.sort((c1, c2) -> {
-            // Простая сортировка по центру Z
-            return Double.compare(getCellCenterZ(c2), getCellCenterZ(c1));
         });
 
-        for (Cell cell : sortedCells) {
-            cell.draw(g, width, height, fov);
-        }
+        addMouseMotionListener(new MouseMotionAdapter() {
+            public void mouseDragged(MouseEvent e) {
+                rotY += (e.getX() - lastX) * 0.01;
+                rotX += (e.getY() - lastY) * 0.01;
+                lastX = e.getX();
+                lastY = e.getY();
+                repaint();
+            }
+        });
     }
 
-    private double getCellCenterZ(Cell cell) {
-        // Простая реализация для получения Z центра ячейки
-        int[] coords = cell.getCoordinates();
-        return coords[2];
-    }
-}
+    private int lastX, lastY;
 
-// Основной класс для отрисовки куба
-class CubePanel extends JPanel {
-    private CubeGrid cubeGrid;
-    private double rotationX = 0;
-    private double rotationY = 0;
-    private double rotationZ = 0;
-    private double fov = 500;
-    private double cellSize = 30;
+    private double[] rotate(double x, double y, double z) {
+        double cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+        double x1 = x * cosY - z * sinY;
+        double z1 = x * sinY + z * cosY;
 
-    // Элементы управления
-    private JSlider xSlider, ySlider, zSlider;
+        double cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+        double y1 = y * cosX - z1 * sinX;
+        double z2 = y * sinX + z1 * cosX;
 
-    public CubePanel() {
-        setBackground(Color.BLACK);
-        cubeGrid = new CubeGrid(8, cellSize);
-        createControls();
+        return new double[]{x1, y1, z2};
     }
 
-    private void createControls() {
-        // Создаем слайдеры для управления вращением
-        xSlider = new JSlider(JSlider.HORIZONTAL, 0, 360, 0);
-        ySlider = new JSlider(JSlider.HORIZONTAL, 0, 360, 0);
-        zSlider = new JSlider(JSlider.HORIZONTAL, 0, 360, 0);
-
-        xSlider.addChangeListener(e -> {
-            rotationX = Math.toRadians(xSlider.getValue());
-            repaint();
-        });
-
-        ySlider.addChangeListener(e -> {
-            rotationY = Math.toRadians(ySlider.getValue());
-            repaint();
-        });
-
-        zSlider.addChangeListener(e -> {
-            rotationZ = Math.toRadians(zSlider.getValue());
-            repaint();
-        });
-
-        // Панель управления
-        JPanel controlPanel = new JPanel(new GridLayout(3, 2));
-        controlPanel.setOpaque(false);
-        controlPanel.add(new JLabel("Вращение X:"));
-        controlPanel.add(xSlider);
-        controlPanel.add(new JLabel("Вращение Y:"));
-        controlPanel.add(ySlider);
-        controlPanel.add(new JLabel("Вращение Z:"));
-        controlPanel.add(zSlider);
-
-        setLayout(new BorderLayout());
-        add(controlPanel, BorderLayout.SOUTH);
+    private Point project(double x, double y, double z) {
+        int cx = getWidth()/2, cy = getHeight()/2;
+        return new Point((int)(x * zoom) + cx, (int)(-y * zoom) + cy);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = (Graphics2D)g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
 
-        int width = getWidth();
-        int height = getHeight();
+        int cx = getWidth()/2, cy = getHeight()/2;
 
-        // Создаем временную копию куба для текущего кадра
-        CubeGrid tempGrid = new CubeGrid(8, cellSize);
+        // Оси
+        g2.setColor(Color.RED);
+        g2.drawLine(cx, cy, cx+100, cy);
+        g2.drawString("X", cx+105, cy);
 
-        // Применяем вращение
-        tempGrid.rotateX(rotationX);
-        tempGrid.rotateY(rotationY);
-        tempGrid.rotateZ(rotationZ);
+        g2.setColor(Color.GREEN);
+        g2.drawLine(cx, cy, cx, cy-100);
+        g2.drawString("Y", cx, cy-105);
 
-        // Рисуем куб
-        tempGrid.draw(g2d, width, height, fov);
+        g2.setColor(Color.BLUE);
+        g2.drawLine(cx, cy, cx+70, cy+70);
+        g2.drawString("Z", cx+75, cy+75);
 
-        // Отображаем информацию
-        g2d.setColor(Color.WHITE);
-        g2d.drawString("3D Куб 8×8×8 (512 ячеек)", 10, 20);
-        g2d.drawString("Используйте слайдеры для вращения", 10, 40);
+        // Куб (прозрачный зеленый)
+        for (double[][] face : CUBE) {
+            int[] xs = new int[4];
+            int[] ys = new int[4];
 
-        // Отображаем текущие углы
-        g2d.drawString(String.format("Углы: X=%.1f° Y=%.1f° Z=%.1f°",
-                Math.toDegrees(rotationX),
-                Math.toDegrees(rotationY),
-                Math.toDegrees(rotationZ)), 10, 60);
-
-        // Отображаем информацию о массиве координат
-        ArrayList<int[]> coords = cubeGrid.getCoordinatesArray();
-        g2d.drawString("Координаты хранятся в массиве из " + coords.size() + " элементов", 10, 80);
-    }
-}
-
-// Главное окно приложения
-public class Rotating3DCube extends JFrame {
-
-    public Rotating3DCube() {
-        setTitle("3D Куб 8×8×8 с вращением");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1000, 800);
-        setLocationRelativeTo(null);
-
-        // Добавляем панель с кубом
-        CubePanel cubePanel = new CubePanel();
-        add(cubePanel);
-
-        // Выводим информацию о массиве координат в консоль
-        printCoordinatesInfo();
-    }
-
-    private void printCoordinatesInfo() {
-        System.out.println("=== 3D Куб 8×8×8 ===");
-        System.out.println("Общее количество ячеек: 512");
-        System.out.println("\nКоординаты ячеек хранятся в массиве:");
-
-        // Создаем пример координат для демонстрации
-        System.out.println("\nПримеры координат первых 10 ячеек:");
-        int count = 0;
-        for (int x = 0; x < 2 && count < 10; x++) {
-            for (int y = 0; y < 2 && count < 10; y++) {
-                for (int z = 0; z < 2 && count < 10; z++) {
-                    System.out.printf("Ячейка %d: [%d, %d, %d]\n",
-                            count + 1, x, y, z);
-                    count++;
-                }
+            for (int i = 0; i < 4; i++) {
+                double[] p = rotate(face[i][0], face[i][1], face[i][2]);
+                Point screen = project(p[0], p[1], p[2]);
+                xs[i] = screen.x;
+                ys[i] = screen.y;
             }
+
+            // Прозрачная зеленая заливка
+            g2.setColor(new Color(0, 255, 0, 50));
+            g2.fillPolygon(xs, ys, 4);
+
+            // Контур грани
+            g2.setColor(new Color(0, 150, 0));
+            g2.drawPolygon(xs, ys, 4);
         }
 
-        System.out.println("\nКоординаты последних 10 ячеек:");
-        count = 0;
-        for (int x = 6; x < 8 && count < 10; x++) {
-            for (int y = 6; y < 8 && count < 10; y++) {
-                for (int z = 6; z < 8 && count < 10; z++) {
-                    System.out.printf("Ячейка %d: [%d, %d, %d]\n",
-                            512 - 10 + count + 1, x, y, z);
-                    count++;
-                }
-            }
-        }
+        // Отрезок
+        double[] p1 = rotate(1,1,1);
+        double[] p2 = rotate(0,0,0);
+        Point s1 = project(p1[0], p1[1], p1[2]);
+        Point s2 = project(p2[0], p2[1], p2[2]);
 
-        System.out.println("\nВсе координаты хранятся в ArrayList<int[]>");
+        g2.setColor(Color.BLACK);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawLine(s1.x, s1.y, s2.x, s2.y);
+
+        // Текст
+        double[] p3 = rotate(2,2,2);
+        Point s3 = project(p3[0], p3[1], p3[2]);
+
+        g2.setColor(Color.MAGENTA);
+        g2.fillOval(s3.x-4, s3.y-4, 8, 8);
+
+        g2.setColor(Color.RED);
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.drawString("привет", s3.x+10, s3.y);
+
+        // Инфо
+        g2.setColor(Color.BLACK);
+        g2.drawString("Зеленый прозрачный куб с центром (1.5,1.5,1.5)", 10, 20);
+        g2.drawString("Вращайте мышью", 10, 40);
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Rotating3DCube frame = new Rotating3DCube();
-            frame.setVisible(true);
+            JFrame f = new JFrame("3D с кубом");
+            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            f.add(new  Rotating3DCube());
+            f.pack();
+            f.setLocationRelativeTo(null);
+            f.setVisible(true);
         });
     }
 }
