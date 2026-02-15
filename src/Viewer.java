@@ -1,16 +1,27 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Viewer extends JPanel {
 
     // Параметры вращения и масштабирования
-    private double rotationX = Math.toRadians(45); // 30 градусов для лучшего обзора
-    private double rotationY = Math.toRadians(45); // 45 градусов для лучшего обзора
+    private double rotX = Math.toRadians(45); // 30 градусов для лучшего обзора
+    private double rotY = Math.toRadians(45); // 45 градусов для лучшего обзора
     private double scale = 20.0; // Масштаб
     private int prevMouseX, prevMouseY;
 
-    private double rotX = 0.5, rotY = 0.5;
+    double pawnCenterX = 0.5;
+    double pawnCenterY = 0.5;
+    double pawnCenterZ = 0.5;
+
+    private List<Vertex> modelVertices;
+    private List<Edge> modelEdges;
+    // Новый список для хранения треугольников (граней)
+    private List<Triangle> modelTriangles;
+
+//    private double rotX = 0.5, rotY = 0.5;
     private double[] rotate(double x, double y, double z) {
         double cosY = Math.cos(rotY), sinY = Math.sin(rotY);
         double x1 = x * cosY - z * sinY;
@@ -31,6 +42,54 @@ public class Viewer extends JPanel {
         // Настройка панели
         setPreferredSize(new Dimension(800, 800));
         setBackground(Color.WHITE);
+
+        buildPawnModel();
+
+        JPanel controlPanel = new JPanel(new FlowLayout());
+        controlPanel.setBackground(new Color(240, 240, 240));
+
+        JTextField fieldX = new JTextField("1", 5);
+        JTextField fieldY = new JTextField("1", 5);
+        JTextField fieldZ = new JTextField("1", 5);
+
+        JButton setCenterBtn = new JButton("Установить центр");
+        setCenterBtn.addActionListener(e -> {
+            try {
+                double x = Double.parseDouble(fieldX.getText());
+                double y = Double.parseDouble(fieldY.getText());
+                double z = Double.parseDouble(fieldZ.getText());
+                if (x>8||y>8||z>8||x<0||y<0||z<0){
+                    throw new IllegalArgumentException();
+                }
+                pawnCenterX = x-0.5;
+                pawnCenterY = y-0.5;
+                pawnCenterZ = z-0.5;
+                repaint();
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Ошибка ввода числа");
+            }
+        });
+
+        JButton resetViewBtn = new JButton("Сбросить вид");
+        resetViewBtn.addActionListener(e -> {
+            rotX = Math.toRadians(30);
+            rotY = Math.toRadians(45);
+            scale = 150;
+            repaint();
+        });
+
+        controlPanel.add(new JLabel("X:"));
+        controlPanel.add(fieldX);
+        controlPanel.add(new JLabel("Y:"));
+        controlPanel.add(fieldY);
+        controlPanel.add(new JLabel("Z:"));
+        controlPanel.add(fieldZ);
+        controlPanel.add(setCenterBtn);
+        controlPanel.add(resetViewBtn);
+
+        setLayout(new BorderLayout());
+        add(controlPanel, BorderLayout.SOUTH);
+
 
         // Добавление обработчиков мыши для вращения
         addMouseListener(new MouseAdapter() {
@@ -55,8 +114,8 @@ public class Viewer extends JPanel {
                     int deltaY = e.getY() - prevMouseY;
 
                     // Вращение вокруг осей
-                    rotationY += deltaX * 0.01;
-                    rotationX += deltaY * 0.01;
+                    rotY += deltaX * 0.01;
+                    rotX += deltaY * 0.01;
 
                     prevMouseX = e.getX();
                     prevMouseY = e.getY();
@@ -73,25 +132,111 @@ public class Viewer extends JPanel {
                 scale -= rotation * 10;
 
                 // Ограничения масштаба
-                if (scale < 50) scale = 50;
+                if (scale < 10) scale = 10;
                 if (scale > 500) scale = 500;
 
                 repaint();
             }
         });
     }
+    private void buildPawnModel() {
+        modelVertices = new ArrayList<>();
+        modelEdges = new ArrayList<>();
+        modelTriangles = new ArrayList<>(); // инициализация
+
+        // Параметры пешки (без изменений)
+        double[] levelsY = {-0.45, -0.45, -0.35, -0.2, 0.10, 0.15, 0.18};
+        double[] levelsR = {0, 0.3, 0.3, 0.15, 0.05, 0.15, 0.1};
+        int segments = 20;
+
+        // Вершины пешки
+        for (int i = 0; i < levelsY.length; i++) {
+            double y = levelsY[i];
+            double r = levelsR[i];
+            for (int j = 0; j < segments; j++) {
+                double angle = 2 * Math.PI * j / segments;
+                double x = r * Math.cos(angle);
+                double z = r * Math.sin(angle);
+                modelVertices.add(new Vertex(x, y, z));
+            }
+        }
+
+        // Горизонтальные рёбра пешки
+        for (int i = 0; i < levelsY.length; i++) {
+            int base = i * segments;
+            for (int j = 0; j < segments; j++) {
+                int next = (j + 1) % segments;
+                modelEdges.add(new Edge(base + j, base + next));
+            }
+        }
+
+        // Вертикальные рёбра пешки
+        for (int i = 0; i < levelsY.length - 1; i++) {
+            int baseLow = i * segments;
+            int baseHigh = (i + 1) * segments;
+            for (int j = 0; j < segments; j++) {
+                modelEdges.add(new Edge(baseLow + j, baseHigh + j));
+            }
+        }
+        double sphereRadius = 0.15;
+        double sphereCenterY = 0.30; // центр сферы по Y (верх пешки)
+
+        // Запоминаем индекс, с которого начинаются вершины сферы
+        int sphereStartIndex = modelVertices.size();
+
+        // Генерируем вершины сферы (сферические координаты)
+        for (int i = segments; i >= 0; i--) {
+            double theta = Math.PI * i / segments; // от 0 до PI (широта)
+            double y = sphereCenterY + sphereRadius * Math.cos(theta);
+            double r = sphereRadius * Math.sin(theta);
+            for (int j = 0; j < segments; j++) {
+                double phi = 2 * Math.PI * j / segments; // долгота
+                double x = r * Math.cos(phi);
+                double z = r * Math.sin(phi);
+                modelVertices.add(new Vertex(x, y, z));
+            }
+        }
+        for (int i = 0; i < segments+levelsY.length; i++) {
+            for (int j = 0; j < segments; j++) {
+                int nextJ = (j + 1) % segments;
+                int p0 = i * segments + j;
+                int p1 =  i * segments + nextJ;
+                int p2 = (i + 1) * segments + nextJ;
+                int p3 =  (i + 1) * segments + j;
+
+                // Два треугольника: (p0, p1, p2) и (p0, p2, p3)
+                modelTriangles.add(new Triangle(p0, p1, p2));
+                modelTriangles.add(new Triangle(p0, p2, p3));
+            }
+        }
+
+        // Добавляем рёбра для сферы (опционально, чтобы был виден контур)
+        for (int i = 0; i <= segments; i++) {
+            for (int j = 0; j < segments; j++) {
+                int nextJ = (j + 1) % segments;
+                int current = sphereStartIndex + i * segments + j;
+                int next = sphereStartIndex + i * segments + nextJ;
+                modelEdges.add(new Edge(current, next));
+                if (i < segments) {
+                    int below = sphereStartIndex + (i + 1) * segments + j;
+                    modelEdges.add(new Edge(current, below));
+                }
+            }
+        }
+    }
+
 
     // Вращение точки в 3D пространстве
     private double[] rotatePoint(double x, double y, double z) {
         // Вращение вокруг оси Y
-        double cosY = Math.cos(rotationY);
-        double sinY = Math.sin(rotationY);
+        double cosY = Math.cos(rotY);
+        double sinY = Math.sin(rotY);
         double x1 = x * cosY - z * sinY;
         double z1 = x * sinY + z * cosY;
 
         // Вращение вокруг оси X
-        double cosX = Math.cos(rotationX);
-        double sinX = Math.sin(rotationX);
+        double cosX = Math.cos(rotX);
+        double sinX = Math.sin(rotX);
         double y1 = y * cosX - z1 * sinX;
         double z2 = y * sinX + z1 * cosX;
 
@@ -109,7 +254,6 @@ public class Viewer extends JPanel {
 
         return new Point(screenX, screenY);
     }
-
     // Рисование координатных осей
     private void drawCoordinateAxes(Graphics2D g2d) {
         int centerX = getWidth() / 2;
@@ -168,22 +312,41 @@ public class Viewer extends JPanel {
         g2d.drawLine(x2, y2, x3, y3);
         g2d.drawLine(x2, y2, x4, y4);
     }
-    // Рисование информационной панели
-    private void drawInfoPanel(Graphics2D g2d) {
+    private void drawModel(Graphics2D g2d) {
+        // Проецируем все вершины
+        List<Point> projected = new ArrayList<>();
+        for (Vertex v : modelVertices) {
+            double wx = v.x + pawnCenterX;
+            double wy = v.y + pawnCenterY;
+            double wz = v.z + pawnCenterZ;
+            double[] rot = rotate(wx, wy, wz);
+            projected.add(projectTo2D(rot[0], rot[1], rot[2]));
+        }
+
+        // Сначала рисуем треугольники (грани) с заливкой
+        g2d.setColor(new Color(0, 0, 0, 200)); // синий полупрозрачный
+        for (Triangle tri : modelTriangles) {
+            Point p0 = projected.get(tri.i0);
+            Point p1 = projected.get(tri.i1);
+            Point p2 = projected.get(tri.i2);
+            int[] xPoints = {p0.x, p1.x, p2.x};
+            int[] yPoints = {p0.y, p1.y, p2.y};
+            g2d.fillPolygon(xPoints, yPoints, 3);
+        }
+
+        // Затем рисуем рёбра (контуры)
+        g2d.setColor(Color.WHITE);
+        g2d.setStroke(new BasicStroke(1/5));
+        for (Edge e : modelEdges) {
+            Point p1 = projected.get(e.i1);
+            Point p2 = projected.get(e.i2);
+            g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+        }
+
+        // Вершины (точки) - опционально
         g2d.setColor(Color.BLACK);
-        g2d.setFont(new Font("Arial", Font.PLAIN, 12));
-
-        String[] infoLines = {
-                "ШАХМАТЫ УКРУПНЁННЫЕ",
-                String.format("Вращение X: %.1f°", Math.toDegrees(rotationX)),
-                String.format("Вращение Y: %.1f°", Math.toDegrees(rotationY)),
-                String.format("Масштаб: %.0f%%", scale)
-        };
-
-        int y = 20;
-        for (String line : infoLines) {
-            g2d.drawString(line, 10, y);
-            y += 20;
+        for (Point p : projected) {
+            g2d.fillOval(p.x - 1, p.y - 1, 2, 2);
         }
     }
 
@@ -200,13 +363,12 @@ public class Viewer extends JPanel {
 
         // Рисование координатной сетки
         drawGrid(g2d);
+        //пешка
+        drawModel(g2d);
 
         // Рисование координатных осей
         drawCoordinateAxes(g2d);
-
-        // Рисование информационной панели
-        drawInfoPanel(g2d);
-
+//        drawInfo(g2d);
         // Рисование сетки
         for (int i = 0; i <= 8; i++) {
             for (int j = 0; j <= 8; j++) {
@@ -347,7 +509,31 @@ public class Viewer extends JPanel {
             }
         }
     }
+    private static class Vertex {
+        double x, y, z;
+        Vertex(double x, double y, double z) { this.x = x; this.y = y; this.z = z; }
+    }
 
+    private static class Edge {
+        int i1, i2;
+        Edge(int i1, int i2) { this.i1 = i1; this.i2 = i2; }
+    }
+
+    // Новый класс для треугольника
+    private static class Triangle {
+        int i0, i1, i2;
+        Triangle(int a, int b, int c) { i0 = a; i1 = b; i2 = c; }
+    }
+    private void drawInfo(Graphics2D g2) {
+        g2.setColor(Color.BLACK);
+        g2.setFont(new Font("Arial", Font.PLAIN, 12));
+        g2.drawString("Положение пешки: (" +
+                String.format("%.2f", pawnCenterX) + ", " +
+                String.format("%.2f", pawnCenterY) + ", " +
+                String.format("%.2f", pawnCenterZ) + ")", 10, 20);
+        g2.drawString("Управление: перетаскивание мыши — вращение, колесико — масштаб", 10, 40);
+        g2.drawString("Введите координаты центра внизу и нажмите 'Установить центр'", 10, 60);
+    }
 
 
 
