@@ -4,7 +4,7 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Pawn3DViewer extends JPanel {
+public class Rook3DViewer extends JPanel {
 
     private double rotX = Math.toRadians(30);
     private double rotY = Math.toRadians(45);
@@ -12,20 +12,20 @@ public class Pawn3DViewer extends JPanel {
     private int prevMouseX, prevMouseY;
     private boolean isRotating = false;
 
-    private double pawnCenterX = 0.5;
-    private double pawnCenterY = 0.5;
-    private double pawnCenterZ = 0.5;
+    private double rookCenterX = 0.5;
+    private double rookCenterY = 0.5;
+    private double rookCenterZ = 0.5;
 
     private List<Vertex> modelVertices;
     private List<Edge> modelEdges;
     // Новый список для хранения треугольников (граней)
     private List<Triangle> modelTriangles;
 
-    public Pawn3DViewer() {
+    public Rook3DViewer() {
         setPreferredSize(new Dimension(900, 700));
         setBackground(Color.WHITE);
 
-        buildPawnModel();
+        buildrookModel();
 
         JPanel controlPanel = new JPanel(new FlowLayout());
         controlPanel.setBackground(new Color(240, 240, 240));
@@ -40,9 +40,9 @@ public class Pawn3DViewer extends JPanel {
                 double x = Double.parseDouble(fieldX.getText());
                 double y = Double.parseDouble(fieldY.getText());
                 double z = Double.parseDouble(fieldZ.getText());
-                pawnCenterX = x;
-                pawnCenterY = y;
-                pawnCenterZ = z;
+                rookCenterX = x;
+                rookCenterY = y;
+                rookCenterZ = z;
                 repaint();
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Ошибка ввода числа");
@@ -107,17 +107,17 @@ public class Pawn3DViewer extends JPanel {
         });
     }
 
-    private void buildPawnModel() {
+    private void buildrookModel() {
         modelVertices = new ArrayList<>();
         modelEdges = new ArrayList<>();
         modelTriangles = new ArrayList<>(); // инициализация
 
-        // Параметры пешки (без изменений)
-        double[] levelsY = {-0.45, -0.45, -0.35, -0.2, 0.15, 0.20, 0.23};
-        double[] levelsR = {0, 0.3, 0.3, 0.15, 0.05, 0.15, 0.1};
+        // Параметры ладьи (без изменений)
+        double[] levelsY = {-0.45, -0.45, -0.35, -0.3, -0.25, -0.10, 0, 0.25, 0.3, 0.4, 0.4, 0.35, 0.35};
+        double[] levelsR = {0, 0.3, 0.3,         0.2, 0.15,    0.1,   0.08,  0.08, 0.15, 0.15, 0.12, 0.12, 0};
         int segments = 20;
 
-        // Вершины пешки
+        // Вершины ладьи
         for (int i = 0; i < levelsY.length; i++) {
             double y = levelsY[i];
             double r = levelsR[i];
@@ -129,7 +129,7 @@ public class Pawn3DViewer extends JPanel {
             }
         }
 
-        // Горизонтальные рёбра пешки
+        // Горизонтальные рёбра ладьи
         for (int i = 0; i < levelsY.length; i++) {
             int base = i * segments;
             for (int j = 0; j < segments; j++) {
@@ -138,7 +138,7 @@ public class Pawn3DViewer extends JPanel {
             }
         }
 
-        // Вертикальные рёбра пешки
+        // Вертикальные рёбра ладьи
         for (int i = 0; i < levelsY.length - 1; i++) {
             int baseLow = i * segments;
             int baseHigh = (i + 1) * segments;
@@ -146,25 +146,7 @@ public class Pawn3DViewer extends JPanel {
                 modelEdges.add(new Edge(baseLow + j, baseHigh + j));
             }
         }
-        double sphereRadius = 0.15;
-        double sphereCenterY = 0.35; // центр сферы по Y (верх пешки)
-
-        // Запоминаем индекс, с которого начинаются вершины сферы
-        int sphereStartIndex = modelVertices.size();
-
-        // Генерируем вершины сферы (сферические координаты)
-        for (int i = segments; i >= 0; i--) {
-            double theta = Math.PI * i / segments; // от 0 до PI (широта)
-            double y = sphereCenterY + sphereRadius * Math.cos(theta);
-            double r = sphereRadius * Math.sin(theta);
-            for (int j = 0; j < segments; j++) {
-                double phi = 2 * Math.PI * j / segments; // долгота
-                double x = r * Math.cos(phi);
-                double z = r * Math.sin(phi);
-                modelVertices.add(new Vertex(x, y, z));
-            }
-        }
-        for (int i = 0; i < segments+levelsY.length; i++) {
+        for (int i = 0; i < levelsY.length-1; i++) {
             for (int j = 0; j < segments; j++) {
                 int nextJ = (j + 1) % segments;
                 int p0 = i * segments + j;
@@ -175,20 +157,6 @@ public class Pawn3DViewer extends JPanel {
                 // Два треугольника: (p0, p1, p2) и (p0, p2, p3)
                 modelTriangles.add(new Triangle(p0, p1, p2));
                 modelTriangles.add(new Triangle(p0, p2, p3));
-            }
-        }
-
-        // Добавляем рёбра для сферы (опционально, чтобы был виден контур)
-        for (int i = 0; i <= segments; i++) {
-            for (int j = 0; j < segments; j++) {
-                int nextJ = (j + 1) % segments;
-                int current = sphereStartIndex + i * segments + j;
-                int next = sphereStartIndex + i * segments + nextJ;
-                modelEdges.add(new Edge(current, next));
-                if (i < segments) {
-                    int below = sphereStartIndex + (i + 1) * segments + j;
-                    modelEdges.add(new Edge(current, below));
-                }
             }
         }
     }
@@ -292,9 +260,9 @@ public class Pawn3DViewer extends JPanel {
         // Проецируем все вершины
         List<Point> projected = new ArrayList<>();
         for (Vertex v : modelVertices) {
-            double wx = v.x + pawnCenterX;
-            double wy = v.y + pawnCenterY;
-            double wz = v.z + pawnCenterZ;
+            double wx = v.x + rookCenterX;
+            double wy = v.y + rookCenterY;
+            double wz = v.z + rookCenterZ;
             double[] rot = rotate(wx, wy, wz);
             projected.add(project(rot[0], rot[1], rot[2]));
         }
@@ -326,7 +294,7 @@ public class Pawn3DViewer extends JPanel {
         }
 
         // Подпись центра
-        double[] centerRot = rotate(pawnCenterX, pawnCenterY, pawnCenterZ);
+        double[] centerRot = rotate(rookCenterX, rookCenterY, rookCenterZ);
         Point c = project(centerRot[0], centerRot[1], centerRot[2]);
         g2.setColor(Color.MAGENTA);
         g2.fillOval(c.x - 4, c.y - 4, 8, 8);
@@ -337,9 +305,9 @@ public class Pawn3DViewer extends JPanel {
         g2.setColor(Color.BLACK);
         g2.setFont(new Font("Arial", Font.PLAIN, 12));
         g2.drawString("Положение пешки: (" +
-                String.format("%.2f", pawnCenterX) + ", " +
-                String.format("%.2f", pawnCenterY) + ", " +
-                String.format("%.2f", pawnCenterZ) + ")", 10, 20);
+                String.format("%.2f", rookCenterX) + ", " +
+                String.format("%.2f", rookCenterY) + ", " +
+                String.format("%.2f", rookCenterZ) + ")", 10, 20);
         g2.drawString("Управление: перетаскивание мыши — вращение, колесико — масштаб", 10, 40);
         g2.drawString("Введите координаты центра внизу и нажмите 'Установить центр'", 10, 60);
     }
@@ -364,7 +332,7 @@ public class Pawn3DViewer extends JPanel {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("3D Шахматная пешка с синей сферой");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.add(new Pawn3DViewer());
+            frame.add(new Rook3DViewer());
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
