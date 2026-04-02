@@ -415,7 +415,7 @@ public class Rook3DViewer extends JPanel {
             g2.drawLine(p1.x, p1.y, p2.x, p2.y);
         }
 
-        // Центр ладьи
+        // Центр ладьи ка
         double[] centerRot = rotate(rookCenterX, rookCenterY, rookCenterZ);
         Point c = project(centerRot[0], centerRot[1], centerRot[2]);
         g2.setColor(Color.MAGENTA);
