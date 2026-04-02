@@ -209,8 +209,8 @@ public class Viewer extends JPanel {
         pawnEdges = new ArrayList<>();
         pawnTriangles = new ArrayList<>();
 
-        double[] levelsY = {-0.45, -0.45, -0.35, -0.2, 0.10, 0.15, 0.18};
-        double[] levelsR = {0, 0.3, 0.3, 0.15, 0.05, 0.15, 0.1};
+        double[] levelsY = {-0.35, -0.35, -0.25, -0.15, 0.06, 0.11, 0.13};
+        double[] levelsR = {0, 0.25, 0.25, 0.12, 0.05, 0.13, 0.09};
         int segments = 20;
 
         // Вершины пешки
@@ -243,8 +243,8 @@ public class Viewer extends JPanel {
             }
         }
 
-        double sphereRadius = 0.15;
-        double sphereCenterY = 0.30;
+        double sphereRadius = 0.1;
+        double sphereCenterY = 0.2;
 
         int sphereStartIndex = pawnVertices.size();
 
