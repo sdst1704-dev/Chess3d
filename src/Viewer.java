@@ -6,14 +6,14 @@ import java.util.List;
 
 public class Viewer extends JPanel {
 
-    // ------------------- Параметры камеры -------------------
+    //Параметры камеры
     private double rotX = Math.toRadians(45);
     private double rotY = Math.toRadians(45);
     private double scale = 20.0;
     private int prevMouseX, prevMouseY;
     private boolean isRotating = false;
 
-    // ------------------- Шахматная логика -------------------
+    //Шахматная логика
     private enum PieceType { PAWN, ROOK, BISHOP, KNIGHT, KING, QUEEN }
     private enum PieceColor { WHITE, BLACK }
 
@@ -60,14 +60,14 @@ public class Viewer extends JPanel {
     }
     private Stack<Move> moveHistory = new Stack<>();
 
-    // ------------------- 3D модели фигур (поля остаются без изменений) -------------------
+    //3D модели фигур
     private List<Vertex> pawnVertices, rookVertices, bishopVertices, knightVertices, kingVertices, queenVertices;
     private List<Edge> pawnEdges, rookEdges, bishopEdges, knightEdges, kingEdges, queenEdges;
     private List<Triangle> pawnTriangles, rookTriangles, bishopTriangles, knightTriangles, kingTriangles, queenTriangles;
     private List<Vertex> cubeVertices, KingcubeVertices, queenSphereVertices;
     private List<Triangle> cubeTriangles, cubeWhiteTriangles, KingcubeTriangles, queenSphereTriangles;
 
-    // ------------------- Конструктор -------------------
+    //Конструктор
     public Viewer() {
         setPreferredSize(new Dimension(1200, 1200));
         setBackground(new Color(220, 200, 180));
@@ -104,7 +104,7 @@ public class Viewer extends JPanel {
         });
     }
 
-    // ------------------- Расстановка фигур (все на y=1) -------------------
+    //Расстановка фигур
     private void initPieces() {
         pieces.clear();
         // Чёрные (z=8)
@@ -129,7 +129,7 @@ public class Viewer extends JPanel {
         pieces.add(new Piece(PieceType.KING, PieceColor.WHITE, 5, 1, 1));
     }
 
-    // ------------------- Вспомогательные методы -------------------
+    //Вспомогательные методы
     private Piece getPieceAt(int x, int y, int z) {
         for (Piece p : pieces) if (p.x == x && p.y == y && p.z == z) return p;
         return null;
@@ -166,7 +166,7 @@ public class Viewer extends JPanel {
         return inCheck;
     }
 
-    // ------------------- Правила ходов (3D) -------------------
+    //Правила ходов (3D)
     private boolean isValidMoveWithoutSelfCheck(Piece piece, int newX, int newY, int newZ, boolean ignoreSelfCheck) {
         if (newX < 1 || newX > 8 || newY < 1 || newY > 8 || newZ < 1 || newZ > 8) return false;
         Piece target = getPieceAt(newX, newY, newZ);
@@ -260,7 +260,7 @@ public class Viewer extends JPanel {
         return !leavesKingInCheck(piece, newX, newY, newZ);
     }
 
-    // ------------------- Выполнение хода -------------------
+    //Выполнение хода
     private boolean makeMove(Piece piece, int newX, int newY, int newZ) {
         if (gameOver) return false;
         if (piece.color != currentTurn) return false;
@@ -330,7 +330,7 @@ public class Viewer extends JPanel {
         repaint();
     }
 
-    // ------------------- Проверка окончания игры -------------------
+    //Проверка окончания игры
     private void checkGameState() {
         if (isCheckmate(currentTurn)) {
             gameOver = true;
@@ -375,7 +375,7 @@ public class Viewer extends JPanel {
         return true;
     }
 
-    // ------------------- Интерфейс пользователя -------------------
+    //Интерфейс
     private void setupUI() {
         JPanel controlPanel = new JPanel(new FlowLayout());
         controlPanel.setBackground(new Color(240, 240, 240));
@@ -446,7 +446,7 @@ public class Viewer extends JPanel {
         add(controlPanel, BorderLayout.SOUTH);
     }
 
-    // ------------------- 3D Отрисовка (координаты центров фигур) -------------------
+    // 3D Отрисовка (координаты центров фигур)
     private double[] rotatePoint(double x, double y, double z) {
         double cosY = Math.cos(rotY), sinY = Math.sin(rotY);
         double x1 = x * cosY - z * sinY;
@@ -1257,7 +1257,7 @@ public class Viewer extends JPanel {
         for (Vertex v : list) { v.x *= f; v.y *= f; v.z *= f; }
     }
 
-    // ------------------- Отрисовка поля -------------------
+    // Отрисовка поля
     @Override
     protected void paintComponent(Graphics gr) {
         super.paintComponent(gr);
@@ -1292,7 +1292,7 @@ public class Viewer extends JPanel {
             }
         }
 
-        // Подписи осей (примерно как раньше, но теперь для трёх осей)
+        // Подписи осей
         for (int i = 0; i <= 8; i++) {
             double[] rX = rotatePoint((i+0.5)*5, 0, 0);
             Point pX = projectTo2D(rX[0], rX[1], rX[2]);
@@ -1309,10 +1309,6 @@ public class Viewer extends JPanel {
             g.setColor(Color.BLUE);
             g.drawString(Integer.toString(i+1), pZ.x+5, pZ.y+5);
         }
-
-        // Отрисовка прозрачных кубиков (клеток) – можно оставить из исходного кода, но для краткости опустим
-        // (это не влияет на геймплей)
-
         // Отрисовка фигур
         for (Piece p : pieces) {
             double cx = (p.x - 0.5) * 5;
@@ -1330,7 +1326,7 @@ public class Viewer extends JPanel {
         }
     }
 
-    // ------------------- Вспомогательные классы -------------------
+    // Вспомогательные классы
     private static class Vertex { double x,y,z; Vertex(double x,double y,double z){this.x=x;this.y=y;this.z=z;} }
     private static class Edge { int i1,i2; Edge(int i1,int i2){this.i1=i1;this.i2=i2;} }
     private static class Triangle { int i0,i1,i2; Triangle(int a,int b,int c){i0=a;i1=b;i2=c;} }
