@@ -89,7 +89,7 @@ public class Viewer extends JPanel {
         addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseDragged(MouseEvent e) {
                 if (isRotating) {
-                    rotY += (e.getX() - prevMouseX) * 0.01;
+                    rotY -= (e.getX() - prevMouseX) * 0.01;
                     rotX += (e.getY() - prevMouseY) * 0.01;
                     prevMouseX = e.getX(); prevMouseY = e.getY();
                     repaint();
